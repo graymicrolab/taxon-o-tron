@@ -1,6 +1,6 @@
 # taxon-o-tron
-version = "0.3"
-updated = "September 13, 2022"
+version = "0.5"
+updated = "September 15, 2022"
 
 """
 The taxon-o-tron is a tool for determining the taxonomic distribution of
@@ -12,14 +12,13 @@ Based heavily on code in script BLASTer.py version 4.2.
 
 Python 3.10.7
 Biopython 1.79
-matplotlib 3.5.3
-BLAST+ 2.10.0 (ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/)
+treemaker 1.4
+(matplotlib 3.5.3)
 
 Setup (saved to file; adjustable if needed):
     Inputs:
         Entrez email
         save path
-        path to standalone blastp application
 
 Step 1: Initial Inputs
     Inputs:
@@ -56,7 +55,7 @@ Step 5: Taxonomic Search
         table of homologs in target clade
             <Species; Present (Y=Accession/N); E-Value; Lineage>
 
-Step 6: Generate Phylogenetic Tree
+Step 6: Generate Taxonomic Tree
     Outputs:  
         tree file
         image file
@@ -69,6 +68,7 @@ import os
 import re
 import sys
 import math
+import string
 import datetime
 
 # Biopython modules
@@ -80,10 +80,11 @@ from Bio.Blast import NCBIWWW
 from Bio.SeqRecord import SeqRecord
 
 # modules with specialized functions
+from treemaker import TreeMaker
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
+#import matplotlib.pyplot as plt
+#import matplotlib.gridspec as gridspec
 
 # HELP SYSTEM TOPICS
 
@@ -581,7 +582,7 @@ while True:
         second_row = "Input sequence: " + useq + "\n"
         third_row = "Target Clade: " + target_clade + "\n"
         fourth_row = "E-Value Cutoff (10^-X): " + str(cutoff) + "\n"
-        fifth_row = "Species\tHomolog\tE-Value (10^-X)\tLineage\n"
+        fifth_row = "Species\tHomolog\tE-Value\tLineage\n"
         save_file.write(first_row)
         save_file.write(second_row)
         save_file.write(third_row)
@@ -607,5 +608,75 @@ while True:
         save_file.close()
 
     # advance to the next step
+        step = step + 1
+
+# Step 6: Generate Taxonomic Tree
+#   Outputs:  
+#       tree file
+#       image file (maybe): might just be easier to use the iTOL website to draw pretty pictures
+
+    while step == 6:
+        print("Generating taxonomic tree...")
+
+    # set root of tree and initialize it
+        clean_target_clade = target_clade.translate(str.maketrans('', '', string.punctuation)).replace(" ", "_")
+        newick_tree = TreeMaker()
+
+    # open data file generated previously
+        data_file = open(pathed_tablefile, "r")
+
+    # loop to insert each species from the data file into the tree
+        line_number = 0
+        
+        for line in data_file:
+            line_number = line_number + 1
+            if line_number >= 6:
+                line_elements = line.rstrip().split("\t")
+                
+                # get species from line and remove whitespace
+                line_species = line_elements[0].replace(" ", "_")
+                
+                # is there a homolog in this species?
+                if line_elements[1] != "none detected":
+                    line_species = line_species + "+"
+                    
+                # get lineage from line and remove both whitespace and punctuation
+                line_lineage = line_elements[3].split("; ")
+                clean_lineage = []
+                for item in line_lineage:
+                    clean_item = item.translate(str.maketrans('', '', string.punctuation)).replace(" ", "_")
+                    clean_lineage.append(clean_item)
+
+                # remove elements of lineage upstream of the target clade
+                for item in clean_lineage:
+                    if item == clean_target_clade:
+                        break
+                    else:
+                        clean_lineage.remove(item)
+
+                # then turn it into a string with commas as separators
+                if len(clean_lineage) > 1:
+                    tree_input = ",".join(clean_lineage)
+                elif len(clean_lineage) == 1:
+                    tree_input = clean_lineage[0]
+                else:
+                    print("ERROR: clean_lineage list is empty")
+                    sys.exit()
+
+                # and add it to the tree
+                newick_tree.add(line_species, tree_input)
+
+    # write Newick formatted tree file
+        newick_string = newick_tree.write()
+
+        treefile = name + "_taxon-o-tron_tree.nwk"
+        pathed_treefile = os.path.join(save_path, treefile)
+        save_file = open(pathed_treefile, "w")
+        save_file.write(newick_string)
+        print("Newick tree file saved as " + treefile + "\n")
+        save_file.close()
+    
+    # advance to the next step
+        data_file.close()
         step = step + 1
         sys.exit()
