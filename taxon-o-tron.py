@@ -1,6 +1,6 @@
 # taxon-o-tron
-version = "0.5"
-updated = "September 15, 2022"
+version = "1"
+updated = "September 16, 2022"
 
 """
 The taxon-o-tron is a tool for determining the taxonomic distribution of
@@ -13,7 +13,6 @@ Based heavily on code in script BLASTer.py version 4.2.
 Python 3.10.7
 Biopython 1.79
 treemaker 1.4
-(matplotlib 3.5.3)
 
 Setup (saved to file; adjustable if needed):
     Inputs:
@@ -57,8 +56,7 @@ Step 5: Taxonomic Search
 
 Step 6: Generate Taxonomic Tree
     Outputs:  
-        tree file
-        image file
+        tree file (Newick format)
 """
 
 # MODULES
@@ -83,8 +81,6 @@ from Bio.SeqRecord import SeqRecord
 from treemaker import TreeMaker
 import numpy as np
 import pandas as pd
-#import matplotlib.pyplot as plt
-#import matplotlib.gridspec as gridspec
 
 # HELP SYSTEM TOPICS
 
@@ -613,7 +609,6 @@ while True:
 # Step 6: Generate Taxonomic Tree
 #   Outputs:  
 #       tree file
-#       image file (maybe): might just be easier to use the iTOL website to draw pretty pictures
 
     while step == 6:
         print("Generating taxonomic tree...")
@@ -638,13 +633,13 @@ while True:
                 
                 # is there a homolog in this species?
                 if line_elements[1] != "none detected":
-                    line_species = line_species + "+"
+                    line_species = line_species + "_+"
                     
                 # get lineage from line and remove both whitespace and punctuation
                 line_lineage = line_elements[3].split("; ")
                 clean_lineage = []
                 for item in line_lineage:
-                    clean_item = item.translate(str.maketrans('', '', string.punctuation)).replace(" ", "_")
+                    clean_item = item.translate(str.maketrans('', '', string.punctuation)).replace(" ", "_").replace("[","").replace("]","")
                     clean_lineage.append(clean_item)
 
                 # remove elements of lineage upstream of the target clade
