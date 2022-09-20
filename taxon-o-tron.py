@@ -1,6 +1,6 @@
 # taxon-o-tron
-version = "1"
-updated = "September 16, 2022"
+version = "1.2"
+updated = "September 20, 2022"
 
 """
 The taxon-o-tron is a tool for determining the taxonomic distribution of
@@ -635,19 +635,14 @@ while True:
                 if line_elements[1] != "none detected":
                     line_species = line_species + "_+"
                     
-                # get lineage from line and remove both whitespace and punctuation
+                # get lineage from line and remove whitespace, punctuation, and higher-order taxa
                 line_lineage = line_elements[3].split("; ")
                 clean_lineage = []
-                for item in line_lineage:
-                    clean_item = item.translate(str.maketrans('', '', string.punctuation)).replace(" ", "_").replace("[","").replace("]","")
+                index = line_lineage.index(clean_target_clade)
+                
+                for item in line_lineage[index:]:
+                    clean_item = item.translate(str.maketrans('', '', string.punctuation)).replace(" ", "_").replace("[","").replace("]","").replace("(","").replace(")","")
                     clean_lineage.append(clean_item)
-
-                # remove elements of lineage upstream of the target clade
-                for item in clean_lineage:
-                    if item == clean_target_clade:
-                        break
-                    else:
-                        clean_lineage.remove(item)
 
                 # then turn it into a string with commas as separators
                 if len(clean_lineage) > 1:
